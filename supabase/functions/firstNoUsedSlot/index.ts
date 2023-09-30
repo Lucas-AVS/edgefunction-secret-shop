@@ -44,30 +44,38 @@ serve(async (req) => {
   
     try {
       const items = await req.json();
-      const insertPromises = items.map(async (item) => {
-  
-        const result = findFirstNotUsedSlot(backpack);
-  
-        const newItem = {
-          user_id: user.id,
-          item_slot: result,
-          item_id: item.item_id,
-          item_quantity: item.item_quantity,
-        };
-  
-        const { data, error } = await supabaseClient
-          .from("backpack")
-          .insert([newItem])
-          .select();
-        return { data, error };
-      });
-  
-      const results = await Promise.all(insertPromises);
-  
-      return new Response(JSON.stringify(results), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      if ((backpack.length + items.length) > 12) {
+        return new Response(JSON.stringify("You don't have any free backpack slots. Please sell some items before proceeding with the checkout."), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      else {
+        const insertPromises = items.map(async (item) => {
+    
+          const result = findFirstNotUsedSlot(backpack);
+    
+          const newItem = {
+            user_id: user.id,
+            item_slot: result,
+            item_id: item.item_id,
+            item_quantity: item.item_quantity,
+          };
+    
+          const { data, error } = await supabaseClient
+            .from("backpack")
+            .insert([newItem])
+            .select();
+          return { data, error };
+        });
+    
+        const results = await Promise.all(insertPromises);
+    
+        return new Response(JSON.stringify(results), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
